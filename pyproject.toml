@@ -186,8 +186,66 @@ reportUnusedExpression = "warning"
 reportUnnecessaryTypeIgnoreComment = "warning"
 reportMatchNotExhaustive = "warning"
 
+[tool.pytest.ini_options]
+# Pytest configuration optimized for async testing and AI coding
+minversion = "9.0"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+# pytest-asyncio configuration
+asyncio_mode = "auto"  # Automatically handle async tests
+asyncio_default_fixture_loop_scope = "function"  # Function-scoped event loops for isolation
+
+# Output and reporting options
+addopts = [
+    "-v",                    # Verbose output
+    "--strict-markers",      # Strict marker usage
+    "--strict-config",       # Strict configuration
+    "--tb=short",           # Shorter traceback format
+    "--cov=.",              # Coverage for current directory
+    "--cov-report=term-missing",  # Show missing lines in coverage report
+    "--cov-report=html",    # Generate HTML coverage report
+    "--cov-fail-under=80",  # Require 80% coverage minimum
+]
+
+# Markers for organizing tests
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+# Coverage configuration
+source = ["."]
+omit = [
+    "*/tests/*",
+    "*/.venv/*",
+    "*/venv/*",
+    "*/__pycache__/*",
+    "*/site-packages/*",
+]
+
+[tool.coverage.report]
+# Coverage reporting configuration
+precision = 2
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.:",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]
+
 [dependency-groups]
 dev = [
     "mypy>=1.18.2",
     "pyright>=1.1.407",
+    "pytest>=9.0.1",
+    "pytest-asyncio>=1.3.0",
+    "pytest-cov>=7.0.0",
 ]

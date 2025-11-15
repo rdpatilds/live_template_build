@@ -5,7 +5,7 @@ proper type checking is enforced across the codebase.
 """
 
 from collections.abc import Generator
-from typing import Any, Optional, Union
+from typing import Any
 
 
 # Test 1: Properly typed function (should pass)
@@ -23,7 +23,7 @@ def add_numbers(a: int, b: int) -> int:
 
 
 # Test 2: Function with Optional parameter (should pass)
-def greet(name: Optional[str] = None) -> str:
+def greet(name: str | None = None) -> str:
     """Generate a greeting message.
 
     Args:
@@ -38,7 +38,7 @@ def greet(name: Optional[str] = None) -> str:
 
 
 # Test 3: Function with Union types (should pass)
-def process_value(value: Union[int, str]) -> str:
+def process_value(value: int | str) -> str:
     """Process a value that can be int or str.
 
     Args:
@@ -167,8 +167,7 @@ def number_generator(start: int, end: int) -> Generator[int, None, None]:
     Yields:
         Numbers from start to end
     """
-    for i in range(start, end + 1):
-        yield i
+    yield from range(start, end + 1)
 
 
 def main() -> None:
