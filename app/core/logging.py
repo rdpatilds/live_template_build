@@ -33,30 +33,39 @@ Usage:
 import contextvars
 import logging
 import sys
+import uuid
 
 import structlog
 from structlog.typing import EventDict, WrappedLogger
 
 # Context variable for request ID correlation
-request_id_var: contextvars.ContextVar[str | None] = contextvars.ContextVar(
-    "request_id", default=None
+request_id_var: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "request_id", default=""
 )
 
 
-def set_request_id(request_id: str) -> None:
+def set_request_id(request_id: str | None = None) -> str:
     """Set the request ID for the current context.
 
+    Generates a new UUID if request_id is not provided.
+
     Args:
-        request_id: Unique identifier for the request
+        request_id: Unique identifier for the request (optional)
+
+    Returns:
+        The request ID that was set
     """
+    if not request_id:
+        request_id = str(uuid.uuid4())
     _ = request_id_var.set(request_id)
+    return request_id
 
 
-def get_request_id() -> str | None:
+def get_request_id() -> str:
     """Get the request ID from the current context.
 
     Returns:
-        The current request ID or None
+        The current request ID or empty string
     """
     return request_id_var.get()
 
@@ -75,7 +84,7 @@ def add_request_id(
         Event dictionary with request_id added if available
     """
     request_id = get_request_id()
-    if request_id is not None:
+    if request_id:
         event_dict["request_id"] = request_id
     return event_dict
 

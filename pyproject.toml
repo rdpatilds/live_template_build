@@ -1,11 +1,18 @@
 [project]
-name = "live-template-build"
+name = "vsa-fastapi-project"
 version = "0.1.0"
-description = "Add your description here"
+description = "FastAPI + PostgreSQL starter with vertical slice architecture, optimized for AI coding"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "alembic>=1.17.2",
+    "asyncpg>=0.30.0",
+    "fastapi>=0.121.2",
+    "pydantic-settings>=2.12.0",
+    "python-dotenv>=1.2.1",
+    "sqlalchemy[asyncio]>=2.0.44",
     "structlog>=25.5.0",
+    "uvicorn[standard]>=0.38.0",
 ]
 
 [tool.ruff]
@@ -57,6 +64,9 @@ unfixable = []
 # Allow unused variables when underscore-prefixed or named specifically
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?)|dummy|unused)$"
 
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
 [tool.ruff.format]
 # Use double quotes by default (Black-compatible)
 quote-style = "double"
@@ -98,10 +108,12 @@ error_summary = true             # Show error summary at the end
 incremental = true
 cache_dir = ".mypy_cache"
 
-# Per-module overrides example (uncomment if needed)
-# [[tool.mypy.overrides]]
-# module = "tests.*"
-# disallow_untyped_defs = false
+# Disable strict type checking for test files
+[[tool.mypy.overrides]]
+module = ["*.tests.*", "app.core.tests.*", "app.tests.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
 
 [tool.pyright]
 # Python version and platform settings
@@ -112,7 +124,7 @@ pythonPlatform = "Linux"
 typeCheckingMode = "strict"
 
 # Include and exclude paths
-include = ["."]
+include = ["app"]
 exclude = [
     "**/__pycache__",
     "**/.venv",
@@ -122,6 +134,8 @@ exclude = [
     "**/build",
     "**/dist",
     "**/*.egg-info",
+    "**/tests/**",
+    "**/test_*.py",
 ]
 
 # Strict type evaluation settings
@@ -191,13 +205,16 @@ reportMatchNotExhaustive = "warning"
 [tool.pytest.ini_options]
 # Pytest configuration optimized for async testing and AI coding
 minversion = "9.0"
-testpaths = ["tests"]
+testpaths = ["app", "tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 
 # pytest-asyncio configuration
-asyncio_mode = "auto"  # Automatically handle async tests
+# IMPORTANT: asyncio_mode = "auto" creates a new event loop per test (proper isolation)
+# This is why integration tests MUST use fixtures (test_db_engine, test_db_session)
+# instead of importing the module-level engine from database.py
+asyncio_mode = "auto"  # Automatically handle async tests - creates fresh loop per test
 asyncio_default_fixture_loop_scope = "function"  # Function-scoped event loops for isolation
 
 # Output and reporting options
@@ -215,7 +232,7 @@ addopts = [
 # Markers for organizing tests
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-    "integration: marks tests as integration tests",
+    "integration: marks tests requiring real database (deselect with '-m \"not integration\"')",
     "unit: marks tests as unit tests",
 ]
 
@@ -228,8 +245,7 @@ omit = [
     "*/venv/*",
     "*/__pycache__/*",
     "*/site-packages/*",
-    "app/main.py",  # Example/demo file, not production code
-    "main.py",      # Project initialization file
+    "main.py",  # Old example file, not part of FastAPI app
 ]
 
 [tool.coverage.report]
@@ -247,6 +263,7 @@ exclude_lines = [
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28.1",
     "mypy>=1.18.2",
     "pyright>=1.1.407",
     "pytest>=9.0.1",

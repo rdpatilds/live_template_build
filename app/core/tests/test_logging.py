@@ -26,10 +26,10 @@ class TestRequestIDContext:
         assert get_request_id() == test_id
 
     def test_get_request_id_when_not_set(self) -> None:
-        """Test getting request ID when not set returns None."""
-        # Reset context
-        _ = request_id_var.set(None)
-        assert get_request_id() is None
+        """Test getting request ID when not set returns empty string."""
+        # Reset context to empty string
+        _ = request_id_var.set("")
+        assert get_request_id() == ""
 
     def test_request_id_isolation(self) -> None:
         """Test that request IDs are isolated to their context."""
@@ -55,8 +55,8 @@ class TestRequestIDProcessor:
         assert result["event"] == "test.event"
 
     def test_add_request_id_processor_without_id(self) -> None:
-        """Test processor doesn't add request_id when not set."""
-        _ = request_id_var.set(None)
+        """Test processor doesn't add request_id when empty."""
+        _ = request_id_var.set("")
         event_dict: dict[str, Any] = {"event": "test.event"}
 
         result = add_request_id(None, "info", event_dict)

@@ -54,6 +54,6 @@ COPY --from=builder /app /app
 # Expose port 8123 for the application
 EXPOSE 8123
 
-# Default command - adjust based on your application entry point
-# Using python -m instead of direct script execution for better module resolution
-CMD ["python", "main.py"]
+# Run FastAPI application with uvicorn
+# Bind to 0.0.0.0 to accept connections from outside the container
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8123"]

@@ -1,145 +1,74 @@
-"""Example application demonstrating structured logging patterns.
+"""FastAPI application with structured logging and vertical slice architecture."""
 
-This module demonstrates:
-- Hybrid dotted namespace logging pattern
-- Request ID correlation
-- Different log states (_started, _completed, _failed, etc.)
-- Exception logging with stack traces
-"""
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
-import uuid
+import uvicorn
+from fastapi import FastAPI
 
-from app.core.logging import get_logger, set_request_id, setup_logging
+from app.core.config import get_settings
+from app.core.database import engine
+from app.core.exceptions import setup_exception_handlers
+from app.core.health import router as health_router
+from app.core.logging import get_logger, setup_logging
+from app.core.middleware import setup_middleware
 
-
-def simulate_user_registration(email: str) -> dict[str, str]:
-    """Simulate user registration with structured logging.
-
-    Args:
-        email: User email address
-
-    Returns:
-        User data dictionary
-    """
-    logger = get_logger()
-
-    # Log registration started
-    logger.info("user.registration_started", email=email, source="api")
-
-    # Simulate validation
-    logger.debug("user.email_validated", email=email, valid=True)
-
-    # Simulate user creation
-    user_id = str(uuid.uuid4())
-    logger.info(
-        "user.registration_completed",
-        user_id=user_id,
-        email=email,
-        method="email_password",
-    )
-
-    return {"user_id": user_id, "email": email}
+settings = get_settings()
 
 
-def simulate_database_operation() -> None:
-    """Simulate database connection with structured logging."""
-    logger = get_logger()
-
-    logger.info("database.connection_started", host="localhost", port=5432)
-
-    try:
-        # Simulate successful connection
-        logger.info(
-            "database.connection_initialized",
-            host="localhost",
-            port=5432,
-            pool_size=5,
-        )
-    except Exception as exc:
-        logger.error(
-            "database.connection_failed",
-            host="localhost",
-            port=5432,
-            error=str(exc),
-            exc_info=True,
-        )
-        raise
-
-
-def simulate_api_request(user_id: str) -> dict[str, str]:
-    """Simulate API request with request ID correlation.
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Application lifespan events for startup and shutdown.
 
     Args:
-        user_id: User identifier
+        app: FastAPI application instance
 
-    Returns:
-        Response data
+    Yields:
+        None: Control back to the application
     """
-    logger = get_logger()
+    # Startup
+    setup_logging(log_level=settings.log_level)
+    logger = get_logger(__name__)
+    logger.info("application.startup", environment=settings.environment)
+    logger.info("database.connection.initialized")
 
-    # Set request ID for correlation
-    request_id = str(uuid.uuid4())
-    set_request_id(request_id)
+    yield
 
-    logger.info("api.request_started", method="GET", path="/users/me", user_id=user_id)
-
-    # Simulate request processing
-    response = {"user_id": user_id, "status": "active"}
-
-    logger.info(
-        "api.request_completed",
-        method="GET",
-        path="/users/me",
-        status_code=200,
-        duration_ms=42,
-    )
-
-    return response
-
-
-def simulate_failed_operation() -> None:
-    """Simulate a failed operation with error logging."""
-    logger = get_logger()
-
-    logger.info("payment.processing_started", amount=99.99, currency="USD")
-
-    try:
-        # Simulate payment failure
-        raise ValueError("Insufficient funds")
-    except Exception as exc:
-        logger.error(
-            "payment.processing_failed",
-            amount=99.99,
-            currency="USD",
-            error=str(exc),
-            exc_info=True,
-        )
-
-
-def main() -> None:
-    """Run example demonstrations of structured logging."""
-    # Setup logging
-    setup_logging(log_level="DEBUG")
-
-    logger = get_logger()
-    logger.info("application.startup", environment="development", version="0.1.0")
-
-    print("\n=== Example 1: User Registration ===")
-    user = simulate_user_registration("user@example.com")
-    print(f"Created user: {user}")
-
-    print("\n=== Example 2: Database Connection ===")
-    simulate_database_operation()
-
-    print("\n=== Example 3: API Request with Request ID ===")
-    response = simulate_api_request(user["user_id"])
-    print(f"API response: {response}")
-
-    print("\n=== Example 4: Failed Operation ===")
-    simulate_failed_operation()
-
+    # Shutdown
+    await engine.dispose()
+    logger.info("database.connection.closed")
     logger.info("application.shutdown")
 
 
+app = FastAPI(
+    title=settings.app_name,
+    version=settings.version,
+    lifespan=lifespan,
+)
+
+# Setup middleware
+setup_middleware(app)
+
+# Setup exception handlers
+setup_exception_handlers(app)
+
+# Include routers
+app.include_router(health_router)  # No prefix - health checks at root level
+
+
+@app.get("/")
+async def root() -> dict[str, str]:
+    """Root endpoint returning application information.
+
+    Returns:
+        dict: Application name, version, and documentation link
+    """
+    return {
+        "message": "Obsidian Agent Project",
+        "version": settings.version,
+        "docs": "/docs",
+    }
+
+
 if __name__ == "__main__":
-    main()
+    uvicorn.run(app, host="0.0.0.0", port=8123)

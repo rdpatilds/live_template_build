@@ -10,3 +10,9 @@ wheels/
 .venv
 .coverage
 htmlcov/
+
+# Environment variables (actual secrets)
+.env
+
+# Database
+alembic/versions/__pycache__/
