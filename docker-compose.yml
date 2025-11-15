@@ -1,0 +1,49 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: live-template-build:latest
+    container_name: live-template-build
+
+    # Port mapping: host:container
+    ports:
+      - "8123:8123"
+
+    # Volume mounts for local development
+    # Mount project directory but exclude .venv to use container's virtual environment
+    volumes:
+      - .:/app
+      - /app/.venv  # Anonymous volume to preserve container's venv
+
+    # Environment variables
+    # You can override these in a .env file or via shell environment
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+
+    # Auto-restart policy
+    restart: unless-stopped
+
+    # Health check (optional - adjust based on your application)
+    # healthcheck:
+    #   test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8123/health')"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 40s
+
+  # Example: Development mode with file watching (requires Compose 2.22.0+)
+  # Uncomment and use 'docker compose up dev' for development with auto-reload
+  # dev:
+  #   extends: app
+  #   command: python main.py --reload
+  #   develop:
+  #     watch:
+  #       - action: sync
+  #         path: .
+  #         target: /app
+  #         ignore:
+  #           - .venv/
+  #       - action: rebuild
+  #         path: ./pyproject.toml
