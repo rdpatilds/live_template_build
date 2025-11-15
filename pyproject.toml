@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "structlog>=25.5.0",
+]
 
 [tool.ruff]
 # Set line length to 88 (Black-compatible)
@@ -226,6 +228,8 @@ omit = [
     "*/venv/*",
     "*/__pycache__/*",
     "*/site-packages/*",
+    "app/main.py",  # Example/demo file, not production code
+    "main.py",      # Project initialization file
 ]
 
 [tool.coverage.report]
